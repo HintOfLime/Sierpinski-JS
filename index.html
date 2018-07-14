@@ -1,0 +1,141 @@
+<html>
+    <body onresize="updateSettings(true)">
+        <div class="row">
+                <div class="column">
+                    <canvas id="c1">
+                </div>
+                <div class="column">
+                    <a>Speed</a>
+                    <input type="range" id="s" min="1" max="100000" step="1" value="1" oninput="updateSettings(false)">
+                    <p></p>
+
+                    <a>Polygon sides</a>
+                    <input type="number" id="n" min="0" max="100" step="1" value="3" onchange="updateSettings(true)">
+                    <p></p>
+
+                    <a>Vector scaler</a>
+                    <input type="range" id="l" min="0" max="1" step="0.01" value="0.5" oninput="updateSettings(true)">
+                    <p></p>
+
+                    <a>Resolution</a>
+                    <input type="number" id="r" min="0" step="1" value="300" onchange="updateSettings(true)">
+                    <p></p>
+
+                    <a>Fancy color</a>
+                    <input type="checkbox" id="c" onchange="updateSettings(true)">
+                    <p></p>
+
+                    <a>Color steps</a>
+                    <input type="number" id="cs" min="0" step="1" value="200" onchange="updateSettings(false)">
+                    <p></p>
+                </div>
+        </div>
+    </body>
+</html>
+
+<style>
+    .column {
+        float: left;
+        width: 50%;
+    }
+
+    .row:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+</style>
+
+<script>
+    var WIDTH = 200;
+    var HEIGHT = 200;
+    var SCALE, SPEED, LENGTH_SCALER, POLYGON_SIDES, FANCY_COLOR, COLOR_STEPS;
+
+    var c = document.getElementById("c1");
+    var ctx = c.getContext("2d");
+
+    var points;
+    var colorData;
+    var x, y;
+
+    updateSettings(true);
+
+    function polygon (n) {
+        var out = new Array(n*2);
+        var IA = (2*Math.PI)/n;
+        for (var i = 0; i < n; i++) {
+            out[i*2] = ((Math.sin(IA*i)+1)*(WIDTH-10)*0.5)+5;
+            out[(i*2)+1] = (HEIGHT-10)-((Math.cos(IA*i)+1)*(HEIGHT-10)*0.5)+5;
+        }
+        return out;
+    }
+
+    function getColor (i) {
+        theta = i*(1/COLOR_STEPS)*Math.PI*2
+        phaseShift = Math.PI*(2/3)
+        r = Math.max(Math.sin(theta+(2*phaseShift)),0)*255;
+        g = Math.max(Math.sin(theta),0)*255;
+        b = Math.max(Math.sin(theta+phaseShift),0)*255;
+        return "rgba("+r+", "+g+", "+b+", 255)";
+    }
+
+    function init () {
+        c.width = Math.min(document.body.clientWidth/2, document.body.clientHeight)-20;
+        c.height = c.width;
+        scale = Math.min(c.width, c.height) / Math.max(WIDTH, HEIGHT);
+
+        colorData = new Array(HEIGHT);
+        for (var j = 0; j < HEIGHT; j++) {
+            colorData[j] = new Array(WIDTH);
+            for (var i = 0; i < WIDTH; i++) {
+                colorData[j][i] = 0;
+            }
+        }
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        points = polygon(POLYGON_SIDES);
+        var randIndex = Math.floor(Math.random() * (points.length/2));
+        x = points[randIndex*2];
+        y = points[(randIndex*2)+1];
+    }
+
+    function updateSettings (reset) {
+        SPEED = document.getElementById("s").value;
+        POLYGON_SIDES = document.getElementById("n").value;
+        LENGTH_SCALER = document.getElementById("l").value;
+        WIDTH = document.getElementById("r").value;
+        HEIGHT = document.getElementById("r").value;
+        FANCY_COLOR = document.getElementById("c").checked;
+        COLOR_STEPS = document.getElementById("cs").value;
+        console.log(FANCY_COLOR);
+
+        setInterval(draw, 100000);
+        if (reset == true) {
+            init();
+        }
+
+        POINTS_PER_FRAME = 1;
+        if (1000/SPEED < 10) {
+            POINTS_PER_FRAME = SPEED/100;
+        }
+        console.log("Speed settings: " + (1000/SPEED) + ", " + POINTS_PER_FRAME);
+        setInterval(draw, Math.min(1000/SPEED, 10));
+    }
+
+    function draw () {
+        for (var i = 0; i < POINTS_PER_FRAME; i++) {
+            var randIndex = Math.floor(Math.random() * (points.length/2));
+            x += (points[randIndex*2]-x)*LENGTH_SCALER;
+            y += (points[(randIndex*2)+1]-y)*LENGTH_SCALER;
+            if (FANCY_COLOR) {
+                colorData[Math.ceil(y)][Math.ceil(x)] += 1;
+                ctx.fillStyle = getColor(colorData[Math.ceil(y)][Math.ceil(x)]);
+            } else {
+                ctx.fillStyle = "rgba(0, 0, 0, 255)";
+            }
+            ctx.fillRect(Math.floor(x)*scale, Math.floor(y)*scale, scale, scale);
+        }
+    }
+</script>
